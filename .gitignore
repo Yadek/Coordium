@@ -1,0 +1,10 @@
+# Скомпилированные бинарники (собираются через GitHub Actions)
+*.exe
+Coordium
+Coordium-*
+/dist/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

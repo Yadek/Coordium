@@ -1,0 +1,79 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            bin: Coordium.exe
+            asset: Coordium-windows-amd64.exe
+          - goos: darwin
+            goarch: amd64
+            bin: Coordium
+            asset: Coordium-macos-intel.zip
+          - goos: darwin
+            goarch: arm64
+            bin: Coordium
+            asset: Coordium-macos-applesilicon.zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags="-s -w" -o "${{ matrix.bin }}" .
+
+      - name: Package ${{ matrix.asset }}
+        run: |
+          if [[ "${{ matrix.asset }}" == *.zip ]]; then
+            chmod +x "${{ matrix.bin }}"
+            zip -q "${{ matrix.asset }}" "${{ matrix.bin }}"
+          else
+            mv "${{ matrix.bin }}" "${{ matrix.asset }}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
