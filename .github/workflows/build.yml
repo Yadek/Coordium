@@ -20,7 +20,11 @@ jobs:
           - goos: windows
             goarch: amd64
             bin: Coordium.exe
-            asset: Coordium-windows-amd64.exe
+            asset: Coordium-windows-x64.exe
+          - goos: windows
+            goarch: arm64
+            bin: Coordium.exe
+            asset: Coordium-windows-arm64.exe
           - goos: darwin
             goarch: amd64
             bin: Coordium
